@@ -1,0 +1,7 @@
+[project]
+name = "mediguard-backend"
+version = "0.1.0"
+description = "This is a backend for making rest apis and powering the mediguard"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
