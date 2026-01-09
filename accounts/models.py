@@ -80,6 +80,9 @@ class User(AbstractBaseUser, PermissionsMixin):
             }
 
 
+import uuid
+from django.db import models
+
 class UserProfile(models.Model):
     GENDER_CHOICES = (
         ("male", "Male"),
@@ -87,6 +90,7 @@ class UserProfile(models.Model):
         ("other", "Other"),
     )
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
     
     # Mandatory fields
@@ -95,6 +99,10 @@ class UserProfile(models.Model):
     age = models.IntegerField()
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
     dob = models.DateField()
+
+    # Sync Metadata
+    updated_at = models.DateTimeField(auto_now=True)
+    is_deleted = models.BooleanField(default=False)
 
     # Optional fields
     profile_pic = models.ImageField(
