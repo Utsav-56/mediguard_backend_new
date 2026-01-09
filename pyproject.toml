@@ -8,6 +8,7 @@ dependencies = [
     "django>=6.0",
     "django-cors-headers>=4.9.0",
     "django-extensions>=4.1",
+    "django-filter>=25.2",
     "django-jazzmin>=3.0.1",
     "django-stubs>=5.2.8",
     "django-unfold>=0.74.1",
@@ -19,7 +20,7 @@ dependencies = [
     "logging>=0.4.9.6",
     "olefile>=0.47",
     "pillow>=12.0.0",
-      "python-dotenv>=1.2.1",
+    "python-dotenv>=1.2.1",
     "uuid>=1.30",
 ]
 

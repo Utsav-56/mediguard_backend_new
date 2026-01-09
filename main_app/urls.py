@@ -15,6 +15,8 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
+from django.http.response import HttpResponse
+
 from django.contrib import admin
 from django.urls import include, path
 
@@ -23,9 +25,6 @@ urlpatterns = [
     path("auth/", include("accounts.urls")),
     path("medications/", include("medications.urls")),
     path("health-metrics/", include("health_metrics.urls")),
-
-
     # just say hello from mediguard in /
     path("", lambda request: HttpResponse("Hello from mediguard")),
-
 ]

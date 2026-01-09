@@ -29,13 +29,13 @@ SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-(vxdnwlw_*of0dp-nn+(s*+6la
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", True)
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", ["*"]).split(",")
+ALLOWED_HOSTS = ["*"]
 
-CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", []).split(",")
+CORS_ALLOWED_ORIGINS = []
 
-CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", True)
+CORS_ALLOW_ALL_ORIGINS = True
 
-CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", True)
+CORS_ALLOW_CREDENTIALS = True
 
 
 LOGGING = {
