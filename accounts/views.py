@@ -39,13 +39,22 @@ class SignupView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
-        return Response(
+        # Auto-login: Generate tokens
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        response = Response(
             {
                 "message": "User created successfully",
                 "user": user.get_user_info(),
             },
             status=status.HTTP_201_CREATED,
         )
+        
+        set_auth_cookies(response, access_token, refresh_token)
+        
+        return response
 
 
 class CustomTokenObtainView(TokenObtainPairView):

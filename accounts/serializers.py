@@ -29,7 +29,8 @@ class UserCreateSerializer(BaseUserCreateSerializer):
     last_name = serializers.CharField(max_length=100)
     age = serializers.IntegerField()
     gender = serializers.ChoiceField(choices=UserProfile.GENDER_CHOICES)
-    dob = serializers.DateField()
+    # Accept DOB as epoch timestamp (milliseconds)
+    dob = serializers.IntegerField(write_only=True)
 
     # Optional Profile Fields (can be added here if needed during signup)
     phone_number = serializers.CharField(max_length=20, required=False)
@@ -53,6 +54,32 @@ class UserCreateSerializer(BaseUserCreateSerializer):
             "password": {"write_only": True},
         }
 
+    def validate(self, attrs):
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.password_validation import validate_password
+        from django.core import exceptions as django_exceptions
+        
+        User = get_user_model()
+        password = attrs.get("password")
+        
+        # Filter attrs for User model instantiation to avoid TypeError
+        # Only keep fields that are actually on the User model (excluding profile fields like age, gender etc)
+        user_field_names = {f.name for f in User._meta.fields}
+        user_attrs = {k: v for k, v in attrs.items() if k in user_field_names}
+        
+        # Create temp user for password validation
+        user = User(**user_attrs)
+        
+        try:
+            validate_password(password, user)
+        except django_exceptions.ValidationError as e:
+            serializer_error = serializers.as_serializer_error(e)
+            raise serializers.ValidationError(
+                {"password": serializer_error["non_field_errors"]}
+            )
+
+        return attrs
+
     def validate_email(self, value):
         """Ensure email is unique and valid."""
         if User.objects.filter(email=value.lower()).exists():
@@ -68,6 +95,14 @@ class UserCreateSerializer(BaseUserCreateSerializer):
         for field in profile_fields:
             if field in validated_data:
                 profile_data[field] = validated_data.pop(field)
+        
+        # Determine DOB from timestamp if it's an integer (epoch ms)
+        if 'dob' in profile_data:
+            ts = profile_data['dob']
+            if isinstance(ts, int):
+                from datetime import datetime
+                # Assuming milliseconds
+                profile_data['dob'] = datetime.fromtimestamp(ts / 1000.0).date()
 
         # Create user
         user = super().create(validated_data)
