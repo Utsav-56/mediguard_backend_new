@@ -23,4 +23,9 @@ urlpatterns = [
     path("auth/", include("accounts.urls")),
     path("medications/", include("medications.urls")),
     path("health-metrics/", include("health_metrics.urls")),
+
+
+    # just say hello from mediguard in /
+    path("", lambda request: HttpResponse("Hello from mediguard")),
+
 ]

@@ -24,18 +24,18 @@ MEDIA_URL = "/media/"
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-(vxdnwlw_*of0dp-nn+(s*+6lafc#))j9#5dtk3j5-lmge7gv_"
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-(vxdnwlw_*of0dp-nn+(s*+6lafc#))j9#5dtk3j5-lmge7gv_")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", True)
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", ["*"]).split(",")
 
-CORS_ALLOWED_ORIGINS = []
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", []).split(",")
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", True)
 
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", True)
 
 
 LOGGING = {
