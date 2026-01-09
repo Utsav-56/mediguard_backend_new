@@ -13,21 +13,32 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os.path
 from datetime import timedelta
 from pathlib import Path
+import os
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+DATA_DIR = "/data"
+MEDIA_ROOT = os.path.join(DATA_DIR, "media")
 MEDIA_URL = "/media/"
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+DB_DIR = BASE_DIR
 
-# SECURITY WARNING: keep the secret key used in production secret!
+DB_DIR_STR = os.getenv("DB_DIR")
+if DB_DIR_STR:
+    DB_DIR = Path(DB_DIR_STR)
+    # Create the directory if it doesn't exist (important for fresh Disks)
+    DB_DIR.mkdir(parents=True, exist_ok=True)
+else:
+    DB_DIR = BASE_DIR
+
+
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-(vxdnwlw_*of0dp-nn+(s*+6lafc#))j9#5dtk3j5-lmge7gv_")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", True)
+# will be true even in prod as it is for testing
+DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
@@ -37,6 +48,13 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 CORS_ALLOW_CREDENTIALS = True
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.onrender.com",
+    "https://your-custom-domain.com" # if you have one
+]
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 LOGGING = {
     "version": 1,
@@ -78,6 +96,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Add this!
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -116,7 +135,7 @@ WSGI_APPLICATION = "main_app.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "NAME": DB_DIR / "db.sqlite3",
     }
 }
 
