@@ -1,117 +1,134 @@
-from django.db import models
+import os.path
 
-# Create your models here.
-from django.conf import settings
+from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
-    BaseUserManager,
     PermissionsMixin,
 )
-from django.core.validators import RegexValidator
-from django.db import models
+
+from accounts.managers import CustomUserManager
 
 
-def user_profile_image_path(instance, filename):
-    # file will be uploaded to MEDIA_ROOT/profile_images/user_<id>/<filename>
+def profile_image_upload_path(instance, filename):
     ext = filename.split(".")[-1]
-    return f"profile_images/user_{instance.id}.{ext}"
-
-
-class UserManager(BaseUserManager):
-    def create_user(self, email, password=None, **extra_fields):
-        if not email:
-            raise ValueError("Users must have an email address")
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-        return self.create_user(email, password, **extra_fields)
+    # instance here will be UserProfile
+    filename = f"user_{instance.user.id}_profile.{ext}"
+    return os.path.join("profile_pics", filename)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    email = models.EmailField(unique=True)
-    full_name = models.CharField(max_length=255)
-    phone_number = models.CharField(
-        max_length=20,
-        blank=True,
-        null=True,
-        validators=[
-            # 1. Check length min of 7 and max of 13 digits (excluding +)
-            RegexValidator(
-                regex=r"^\+?\d{7,13}$",
-                message="Phone number must be between 7-13 digits",
-            ),
-            # 2. Check if it contains anything other than + and digits
-            RegexValidator(
-                regex=r"^[+\d]+$",
-                message="Phone number can only contain digits or a plus sign.",
-            ),
-            RegexValidator(
-                regex=r"^\+?\d+$",
-                message="Phone number must not contain consecutive special characters.",
-            ),
-        ],
-    )
-    address = models.TextField(blank=True, null=True)
-
-    profile_image = models.ImageField(
-        upload_to=user_profile_image_path, blank=True, null=True
-    )  # ✅ Added
+    # Auth related info ONLY
+    email = models.EmailField(unique=True, db_index=True, null=False, blank=False)
+    password = models.CharField(max_length=128, null=False, blank=False)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    objects = UserManager()
+    objects = CustomUserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["full_name"]
+    REQUIRED_FIELDS = []
 
-    def save(self, *args, **kwargs):
-        # first save to generate ID
-        if not self.id:
-            saved_image = self.profile_image
-            self.profile_image = None
-            super().save(*args, **kwargs)
-            self.profile_image = saved_image
-
-        super().save(*args, **kwargs)
+    @property
+    def username(self):
+        return self.email
 
     def __str__(self):
         return self.email
 
-    def get_full_name(self):
-        return self.full_name
-
-    def get_short_name(self):
-        return self.full_name.split(" ")
-
-    def get_profile_image_url(self):
-        if self.profile_image:
-            request = getattr(self, "_request", None)
-            if request:
-                return request.build_absolute_uri(self.profile_image.url)
-            else:
-                # Fallback to manual construction
-                return f"{settings.MEDIA_URL}{self.profile_image.name}"
-        return None
-
     def get_user_info(self):
-        return {
-            "id": self.id,
-            "email": self.email,
-            "full_name": self.full_name,
-            "phone_number": self.phone_number,
-            "address": self.address,
-            "profile_image": self.get_profile_image_url(),
-        }
+        """
+        Helper method to get full user info including profile.
+        """
+        try:
+            profile = self.profile
+            return {
+                "id": self.id,
+                "email": self.email,
+                "first_name": profile.first_name,
+                "last_name": profile.last_name,
+                "full_name": profile.full_name,
+                "age": profile.age,
+                "gender": profile.gender,
+                "dob": profile.dob,
+                "profile_pic": profile.profile_pic.url if profile.profile_pic else None,
+                "blood_group": profile.blood_group,
+                "weight": profile.weight,
+                "height": profile.height,
+                "allergies": profile.allergies,
+                "chronic_conditions": profile.chronic_conditions,
+                "medications": profile.medications,
+                "emergency_contact_name": profile.emergency_contact_name,
+                "emergency_contact_number": profile.emergency_contact_number,
+                "emergency_contact_relation": profile.emergency_contact_relation,
+                "family_medical_history": profile.family_medical_history,
+                "insurance_provider": profile.insurance_provider,
+                "insurance_policy_number": profile.insurance_policy_number,
+                "address": profile.address,
+                "phone_number": profile.phone_number,
+                "contact_email": profile.contact_email,
+            }
+        except Exception:
+            # Fallback if profile doesn't exist yet
+            return {
+                "id": self.id,
+                "email": self.email,
+                "first_name": "",
+                "last_name": "",
+                "full_name": "",
+            }
 
-    class Meta:
-        verbose_name = "User"
-        verbose_name_plural = "Users"
 
+class UserProfile(models.Model):
+    GENDER_CHOICES = (
+        ("male", "Male"),
+        ("female", "Female"),
+        ("other", "Other"),
+    )
 
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    
+    # Mandatory fields
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    age = models.IntegerField()
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
+    dob = models.DateField()
+
+    # Optional fields
+    profile_pic = models.ImageField(
+        upload_to=profile_image_upload_path, blank=True, null=True
+    )
+    blood_group = models.CharField(max_length=10, blank=True, null=True)
+    weight = models.FloatField(blank=True, null=True)  # in kg
+    height = models.FloatField(blank=True, null=True)  # in cm
+
+    # Medical history / Info
+    allergies = models.TextField(blank=True, null=True)
+    chronic_conditions = models.TextField(blank=True, null=True)
+    medications = models.TextField(blank=True, null=True)
+
+    # Emergency Contact
+    emergency_contact_name = models.CharField(max_length=100, blank=True, null=True)
+    emergency_contact_number = models.CharField(max_length=20, blank=True, null=True)
+    emergency_contact_relation = models.CharField(max_length=100, blank=True, null=True)
+
+    # Family Medical History
+    family_medical_history = models.TextField(blank=True, null=True)
+
+    # Insurance Info
+    insurance_provider = models.CharField(max_length=100, blank=True, null=True)
+    insurance_policy_number = models.CharField(max_length=100, blank=True, null=True)
+
+    # Other fields
+    address = models.TextField(blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    contact_email = models.EmailField(blank=True, null=True)
+
+    @property
+    def full_name(self):
+        return f"{self.first_name} {self.last_name}".strip()
+
+    def __str__(self):
+        return f"Profile of {self.user.email}"
