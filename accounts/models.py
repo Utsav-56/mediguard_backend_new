@@ -51,7 +51,7 @@ class User(AbstractBaseUser, PermissionsMixin):
                 "full_name": profile.full_name,
                 "age": profile.age,
                 "gender": profile.gender,
-                "dob": profile.dob,
+                "dob": profile.dob.isoformat() if profile.dob else None,
                 "profile_pic": profile.profile_pic.url if profile.profile_pic else None,
                 "blood_group": profile.blood_group,
                 "weight": profile.weight,
@@ -83,6 +83,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 import uuid
 from django.db import models
 
+
 class UserProfile(models.Model):
     GENDER_CHOICES = (
         ("male", "Male"),
@@ -92,7 +93,7 @@ class UserProfile(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
-    
+
     # Mandatory fields
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)

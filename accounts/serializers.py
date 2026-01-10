@@ -7,6 +7,34 @@ from django.contrib.auth import get_user_model
 from djoser.serializers import UserSerializer as BaseUserSerializer
 
 
+class ISODateField(serializers.DateField):
+    """Date field that accepts ISO-8601 strings and (for compatibility) epoch timestamps in milliseconds.
+
+    - to_internal_value accepts both a date string (YYYY-MM-DD or ISO) or an integer epoch ms.
+    - to_representation returns an ISO-8601 date string (YYYY-MM-DD).
+    """
+
+    def to_internal_value(self, data):
+        # Accept epoch milliseconds as integer for backward compatibility
+        if isinstance(data, int):
+            from datetime import datetime, timezone
+
+            try:
+                dt = datetime.fromtimestamp(data / 1000.0, tz=timezone.utc)
+                # Convert to date string for parent parsing
+                data = dt.date().isoformat()
+            except Exception:
+                raise serializers.ValidationError("Invalid epoch timestamp for date")
+
+        return super().to_internal_value(data)
+
+    def to_representation(self, value):
+        if value is None:
+            return None
+        # value is a date object
+        return value.isoformat()
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
@@ -24,13 +52,14 @@ class UserCreateSerializer(BaseUserCreateSerializer):
     """
     Serializer for user registration. Handles both User and UserProfile creation.
     """
+
     # Mandatory Profile Fields
     first_name = serializers.CharField(max_length=100)
     last_name = serializers.CharField(max_length=100)
     age = serializers.IntegerField()
     gender = serializers.ChoiceField(choices=UserProfile.GENDER_CHOICES)
-    # Accept DOB as epoch timestamp (milliseconds)
-    dob = serializers.IntegerField(write_only=True)
+    # Accept DOB as ISO-8601 date string (YYYY-MM-DD). Also accepts epoch ms for backward compatibility.
+    dob = ISODateField(write_only=True, required=True)
 
     # Optional Profile Fields (can be added here if needed during signup)
     phone_number = serializers.CharField(max_length=20, required=False)
@@ -58,18 +87,18 @@ class UserCreateSerializer(BaseUserCreateSerializer):
         from django.contrib.auth import get_user_model
         from django.contrib.auth.password_validation import validate_password
         from django.core import exceptions as django_exceptions
-        
+
         User = get_user_model()
         password = attrs.get("password")
-        
+
         # Filter attrs for User model instantiation to avoid TypeError
         # Only keep fields that are actually on the User model (excluding profile fields like age, gender etc)
         user_field_names = {f.name for f in User._meta.fields}
         user_attrs = {k: v for k, v in attrs.items() if k in user_field_names}
-        
+
         # Create temp user for password validation
         user = User(**user_attrs)
-        
+
         try:
             validate_password(password, user)
         except django_exceptions.ValidationError as e:
@@ -89,27 +118,28 @@ class UserCreateSerializer(BaseUserCreateSerializer):
     def create(self, validated_data):
         # Extract profile data
         profile_fields = [
-            "first_name", "last_name", "age", "gender", "dob", "phone_number", "address"
+            "first_name",
+            "last_name",
+            "age",
+            "gender",
+            "dob",
+            "phone_number",
+            "address",
         ]
         profile_data = {}
         for field in profile_fields:
             if field in validated_data:
                 profile_data[field] = validated_data.pop(field)
-        
-        # Determine DOB from timestamp if it's an integer (epoch ms)
-        if 'dob' in profile_data:
-            ts = profile_data['dob']
-            if isinstance(ts, int):
-                from datetime import datetime
-                # Assuming milliseconds
-                profile_data['dob'] = datetime.fromtimestamp(ts / 1000.0).date()
+
+        # `dob` is handled by ISODateField which accepts ISO date strings or epoch ms and
+        # will provide a Python `date` object when saving to the model.
 
         # Create user
         user = super().create(validated_data)
-        
+
         # Create profile
         UserProfile.objects.create(user=user, **profile_data)
-        
+
         return user
 
 
@@ -117,6 +147,7 @@ class UserSerializer(BaseUserSerializer):
     """
     Serializer for user data retrieval. Returns full profile info.
     """
+
     profile = serializers.SerializerMethodField()
 
     class Meta(BaseUserSerializer.Meta):
@@ -136,6 +167,8 @@ class UserSerializer(BaseUserSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
+    # Ensure DOB is serialized as ISO-8601 (YYYY-MM-DD)
+    dob = ISODateField()
 
     class Meta:
         model = UserProfile
@@ -144,11 +177,14 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    # Accept ISO date strings for DOB on update
+    dob = ISODateField(required=False)
+
     class Meta:
         model = UserProfile
         exclude = ["user"]
         # Email change is handled by separating User.email and Profile.contact_email
-        # but the prompt says "we wont allow to change email". 
+        # but the prompt says "we wont allow to change email".
         # I'll make sure contact_email can be changed if they want, but User.email (auth) cannot be.
         # Actually I'll just exclude email from here to be safe if that's what they meant.
         # Wait, if they have contact_email in profile, maybe that's what they want to change?
@@ -181,7 +217,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         email = attrs.get("email")
         # password is validated by super().validate(attrs)
-        
+
         User = get_user_model()
 
         # Check if email exists
@@ -204,7 +240,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # Add Custom Data in "user" key as requested
         data["user"] = user_obj.get_user_info()
-        
+
         # Remove tokens from data if we want to ensure they aren't in body
         # However, the view will handle the cookie setting.
         # The user requested: "we will not send the tokens in the response body"
