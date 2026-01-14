@@ -35,10 +35,12 @@ else:
     DB_DIR = BASE_DIR
 
 
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-(vxdnwlw_*of0dp-nn+(s*+6lafc#))j9#5dtk3j5-lmge7gv_")
+SECRET_KEY = os.getenv(
+    "SECRET_KEY", "django-insecure-(vxdnwlw_*of0dp-nn+(s*+6lafc#))j9#5dtk3j5-lmge7gv_"
+)
 
 # will be true even in prod as it is for testing
-DEBUG = True
+# DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
 
@@ -50,7 +52,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.onrender.com",
-    "https://your-custom-domain.com" # if you have one
+    "https://your-custom-domain.com",  # if you have one
 ]
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
@@ -90,8 +92,8 @@ INSTALLED_APPS = [
     "django_filters",
     # Local apps
     "accounts",
-    "medications",
-    "health_metrics",
+    # "medications",
+    # "health_metrics",
 ]
 
 MIDDLEWARE = [
@@ -161,8 +163,15 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": (
         # our custom SRE global renderer
-        "core.renderers.GlobalResponseRenderer",
-        "rest_framework.renderers.BrowsableAPIRenderer",
+        # "core.renderers.GlobalResponseRenderer",
+        "rest_framework.renderers.JSONRenderer",
+        # "rest_framework.renderers.BrowsableAPIRenderer",
+    ),
+    "DEFAULT_PARSER_CLASSES": (
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.FormParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FileUploadParser",
     ),
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "accounts.auth.CustomJWTAuthentication",
@@ -170,7 +179,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_FILTER_BACKENDS": ("django_filters.rest_framework.DjangoFilterBackend",),
-    "EXCEPTION_HANDLER": "core.exceptions.global_exception_handler",
+    # "EXCEPTION_HANDLER": "core.exceptions.global_exception_handler",
 }
 
 SIMPLE_JWT = {
@@ -186,7 +195,10 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_HTTP_ONLY": True,  # Prevents JS from reading the cookie (XSS protection)
     "AUTH_COOKIE_PATH": "/",
     "AUTH_COOKIE_SAMESITE": "Lax",
+    "ADMIN_COOKIE": "townspark_admin_token",
+    "ADMIN_COOKIE_REFRESH": "townspark_admin_refresh_token",
 }
+
 
 DJOSER = {
     "USER_ID_FIELD": "id",
@@ -194,11 +206,11 @@ DJOSER = {
     "USER_CREATE_PASSWORD_RETYPE": False,
     "SEND_ACTIVATION_EMAIL": False,  # Set to True if email backend is configured
     "SEND_CONFIRMATION_EMAIL": False,
-    "SERIALIZERS": {
-        "user_create": "accounts.serializers.UserCreateSerializer",
-        "user": "accounts.serializers.UserSerializer",
-        "current_user": "accounts.serializers.UserSerializer",
-    },
+    # "SERIALIZERS": {
+    #     "user_create": "accounts.serializers.UserCreateSerializer",
+    #     "user": "accounts.serializers.UserSerializer",
+    #     "current_user": "accounts.serializers.UserSerializer",
+    # },
 }
 
 
@@ -210,47 +222,3 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 STATIC_URL = "static/"
-
-# Unfold Admin Configuration
-UNFOLD = {
-    "SITE_TITLE": "Townspark Admin",
-    "SITE_HEADER": "Townspark",
-    "SITE_URL": "/",
-    # "SITE_ICON": {
-    #     "light": lambda request: static("images/logo-light.svg"),  # light mode
-    #     "dark": lambda request: static("images/logo-dark.svg"),  # dark mode
-    # },
-    "SIDEBAR": {
-        "show_search": True,
-        "show_all_applications": True,
-        "navigation": [
-            {
-                "title": "Navigation",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Dashboard",
-                        "icon": "dashboard",
-                        "link": "admin:index",
-                    },
-                ],
-            },
-            {
-                "title": "Management",
-                "separator": True,
-                "items": [
-                    {
-                        "title": "Users",
-                        "icon": "people",
-                        "link": "admin:accounts_user_changelist",
-                    },
-                    {
-                        "title": "Issues Feed",
-                        "icon": "view_agenda",
-                        "link": "admin:issues_issue_changelist",
-                    },
-                ],
-            },
-        ],
-    },
-}

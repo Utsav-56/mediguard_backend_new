@@ -1,30 +1,20 @@
-from django.urls import path
+from django.contrib.auth.views import LogoutView
 from accounts.views import (
-    SignupView,
-    CustomTokenObtainView,
-    CustomTokenRefreshView,
-    CustomTokenVerifyView,
-    LogoutView,
-    ProfileView,
     PasswordChangeView,
+    UserCreateView,
+    UserLoginView,
+    LoggedUserInfoView,
+    UserUpdateView,
 )
 
+from django.urls import path
+
+
 urlpatterns = [
-    # Auth
-    path("register/", SignupView.as_view(), name="register"),
-    path("signup/", SignupView.as_view(), name="signup"),  # Alias
-    path("login/", CustomTokenObtainView.as_view(), name="login"),
-    path("logout/", LogoutView.as_view(), name="logout"),
-    
-    # Session / Token management
-    path("token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
-    path("token/verify/", CustomTokenVerifyView.as_view(), name="token_verify"),
-    path("session/verify/", CustomTokenVerifyView.as_view(), name="session_verify"), # Specific alias for session check
-    
-    # Profile management
-    path("me/", ProfileView.as_view(), name="me"),
-    path("me/update/", ProfileView.as_view(), name="me_update"),
-    
-    # Password management
-    path("me/password/change/", PasswordChangeView.as_view(), name="password_change"),
+    path("register/", view=UserCreateView.as_view(), name="signup"),
+    path("login/", view=UserLoginView.as_view(), name="login"),
+    path("me/", view=LoggedUserInfoView.as_view(), name="logged_user_info"),
+    path("update/", view=UserUpdateView.as_view(), name="user_update"),
+    path("logout/", view=LogoutView.as_view(), name="logout"),
+    path("change-password/", view=PasswordChangeView.as_view(), name="change_password"),
 ]

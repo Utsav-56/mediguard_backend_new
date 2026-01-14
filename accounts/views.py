@@ -1,231 +1,135 @@
-from rest_framework import status, generics
-from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.permissions import AllowAny
+from rest_framework.status import (
+    HTTP_400_BAD_REQUEST,
+    HTTP_201_CREATED,
+    HTTP_200_OK,
+)
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from rest_framework.views import APIView
 
-from .auth import set_auth_cookies, clear_auth_cookies
-from .serializers import (
-    CustomTokenObtainPairSerializer,
-    UserCreateSerializer,
-    UserProfileUpdateSerializer,
-    PasswordChangeSerializer,
-)
+from accounts.serializers.create import UserSignupSerializer
+from accounts.serializers.login import UserLoginSerializer
+from accounts.serializers.read import CompleteUserGetSerializer
+from accounts.serializers.update import PasswordUpdateSerializer, UserUpdateSerializer
+from accounts.utils import delete_auth_cookies, set_auth_cookies
 
 
-class SignupView(generics.CreateAPIView):
-    """
-    Handles user registration and creates a profile automatically.
-    """
-
-    permission_classes = [AllowAny]
-    serializer_class = UserCreateSerializer
-
-    def create(self, request, *args, **kwargs):
+# An api endpoint for creating a user
+class UserCreateView(APIView):
+    def post(self, request):
         if request.user.is_authenticated:
             return Response(
-                {"detail": "User is already logged in."},
-                status=status.HTTP_403_FORBIDDEN,
+                {
+                    "detail": "You are already authenticated.",
+                },
+                status=HTTP_400_BAD_REQUEST,
             )
+        serializer = UserSignupSerializer(data=request.data)
+        if not serializer.is_valid():
+            print(f"Serializer errors: {serializer.errors}")
+            return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
 
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        # try:
         user = serializer.save()
-
-        # Auto-login: Generate tokens
-        refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
-        refresh_token = str(refresh)
-
-        response = Response(
-            {
-                "message": "User created successfully",
-                "user": user.get_user_info(),
-            },
-            status=status.HTTP_201_CREATED,
+        return Response(
+            {"user": UserSignupSerializer(user).data}, status=HTTP_201_CREATED
         )
 
-        set_auth_cookies(response, access_token, refresh_token)
 
-        return response
-
-
-class CustomTokenObtainView(TokenObtainPairView):
-    """
-    Login view that sets tokens in HTTP-only cookies and returns user info.
-    No tokens are sent in the response body.
-    """
-
+class UserLoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
-    serializer_class = CustomTokenObtainPairSerializer
+
+    serializer_class = UserLoginSerializer
 
     def post(self, request, *args, **kwargs):
         if request.user.is_authenticated:
             return Response(
-                {"detail": "User is already logged in."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {
+                    "detail": "You are already authenticated.",
+                },
+                status=HTTP_400_BAD_REQUEST,
             )
 
         response = super().post(request, *args, **kwargs)
+        print(f"Login response data: {response.data}")
 
-        if response.status_code == status.HTTP_200_OK:
-            # Extract and remove tokens from body
-            access_token = response.data.pop("access")
-            refresh_token = response.data.pop("refresh")
-            set_auth_cookies(response, access_token, refresh_token)
+        # Set the JWT token in an HttpOnly cookie
+        if response.status_code == HTTP_200_OK:
+            access_token = response.data.get("access")
+            refresh_token = response.data.get("refresh")
+
+            response = set_auth_cookies(response, access_token, refresh_token)
 
         return response
 
 
-class CustomTokenRefreshView(TokenRefreshView):
-    """
-    Refreshes the access token via cookie and sets a new one.
-    """
+class LoggedUserInfoView(APIView):
+    """API view to get logged in user info"""
 
-    def post(self, request, *args, **kwargs):
-        refresh_token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"])
-
-        if not refresh_token:
+    def get(self, request):
+        user = request.user
+        if not user.is_authenticated:
             return Response(
-                {"detail": "Refresh token not found in cookies."},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"detail": "Authentication credentials were not provided."},
+                status=HTTP_400_BAD_REQUEST,
             )
 
-        request.data["refresh"] = refresh_token
-        response = super().post(request, *args, **kwargs)
+        return Response({"user": user.full_info}, status=HTTP_200_OK)
 
-        if response.status_code == 200:
-            access_token = response.data.pop("access")
-            refresh_token = (
-                response.data.pop("refresh") if "refresh" in response.data else None
+
+class UserUpdateView(APIView):
+    """API view to update logged in user info"""
+
+    def put(self, request):
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=HTTP_400_BAD_REQUEST,
             )
-            set_auth_cookies(response, access_token, refresh_token)
 
-        return response
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+        if not serializer.is_valid():
+            print(f"Serializer errors: {serializer.errors}")
+            return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
 
-
-class CustomTokenVerifyView(APIView):
-    """
-    Verifies session and automatically refreshes tokens if access token is expired.
-    Returns full user info.
-    """
-
-    permission_classes = [AllowAny]
-
-    def post(self, request, *args, **kwargs):
-        User = get_user_model()
-        access_token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE"])
-        refresh_token = request.COOKIES.get(settings.SIMPLE_JWT["AUTH_COOKIE_REFRESH"])
-
-        if access_token:
-            try:
-                token = AccessToken(access_token)
-                user = User.objects.get(id=token["user_id"])
-                return Response(
-                    {"success": True, "refreshed": False, "user": user.get_user_info()}
-                )
-            except (TokenError, InvalidToken, User.DoesNotExist):
-                # Access token failed, try refresh
-                pass
-
-        if refresh_token:
-            try:
-                refresh = RefreshToken(refresh_token)
-                new_access_token = str(refresh.access_token)
-                user = User.objects.get(id=refresh["user_id"])
-
-                response = Response(
-                    {"success": True, "refreshed": True, "user": user.get_user_info()}
-                )
-
-                new_refresh_token = (
-                    str(refresh)
-                    if settings.SIMPLE_JWT.get("ROTATE_REFRESH_TOKENS", False)
-                    else None
-                )
-                set_auth_cookies(response, new_access_token, new_refresh_token)
-                return response
-            except (TokenError, InvalidToken, User.DoesNotExist):
-                pass
-
+        user = serializer.save()
         return Response(
-            {"detail": "Session expired or invalid. Please login again."},
-            status=status.HTTP_401_UNAUTHORIZED,
+            {"user": CompleteUserGetSerializer(user).data}, status=HTTP_200_OK
+        )
+
+
+class PasswordChangeView(APIView):
+    """API view to change logged in user password"""
+
+    def put(self, request):
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {"detail": "You are not logged in."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = PasswordUpdateSerializer(
+            user, data=request.data, partial=True, context={"request": request}
+        )
+
+        if not serializer.is_valid():
+            print(f"Serializer errors: {serializer.errors}")
+            return Response(serializer.errors, status=HTTP_400_BAD_REQUEST)
+
+        user = serializer.save()
+        return Response(
+            {"detail": "Password updated successfully."}, status=HTTP_200_OK
         )
 
 
 class LogoutView(APIView):
-    """
-    Clears authentication cookies on logout.
-    """
+    """API view to log out the user by clearing auth cookies"""
 
     def post(self, request):
-        response = Response(
-            {"detail": "Successfully logged out."}, status=status.HTTP_200_OK
-        )
-        clear_auth_cookies(response)
+        response = Response({"detail": "Logged out successfully."}, status=HTTP_200_OK)
+        # Clear the auth cookies
+        response = delete_auth_cookies(response)
         return response
-
-
-class ProfileView(APIView):
-    """
-    Retrieve and update user profile.
-    Email change is not allowed.
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        return Response({"user": request.user.get_user_info()})
-
-    def patch(self, request):
-        # Prevent email change if it's in the payload
-        # (Though UserProfileUpdateSerializer already excludes user field)
-        try:
-            profile = request.user.profile
-        except Exception:
-            # Handle case where profile might be missing (shouldn't happen with proper signup)
-            from .models import UserProfile
-
-            profile = UserProfile.objects.create(user=request.user)
-
-        serializer = UserProfileUpdateSerializer(
-            profile, data=request.data, partial=True
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(
-                {
-                    "message": "Profile updated successfully.",
-                    "user": request.user.get_user_info(),
-                }
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class PasswordChangeView(APIView):
-    """
-    Dedicated route for changing password.
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        serializer = PasswordChangeSerializer(
-            data=request.data, context={"request": request}
-        )
-        if serializer.is_valid():
-            user = request.user
-            user.set_password(serializer.validated_data["new_password"])
-            user.save()
-            return Response(
-                {"detail": "Password changed successfully."}, status=status.HTTP_200_OK
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

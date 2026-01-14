@@ -18,13 +18,14 @@ Including another URLconf
 from django.http.response import HttpResponse
 
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import path, include
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/", include("accounts.urls")),
-    path("medications/", include("medications.urls")),
-    path("health-metrics/", include("health_metrics.urls")),
+    path("accounts/", include("accounts.urls")),
+    # path("medications/", include("medications.urls")),
+    # path("health-metrics/", include("health_metrics.urls")),
     # just say hello from mediguard in /
     path("", lambda request: HttpResponse("Hello from mediguard")),
 ]
