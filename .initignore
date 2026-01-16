@@ -1,0 +1,23 @@
+# Ignore specific files
+manage.py
+settings.py
+wsgi.py
+asgi.py
+
+# Ignore directories
+migrations/
+tests/
+*/migrations/
+*/tests/
+
+# Ignore pattern matching
+*_test.py
+test_*.py
+
+# Ignore specific paths (relative to project root)
+/config/local_settings.py
+/scripts/
+
+# Wildcard patterns
+*.backup.py
+temp_*.py

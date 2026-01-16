@@ -92,6 +92,7 @@ INSTALLED_APPS = [
     "django_filters",
     # Local apps
     "accounts",
+    "caretakers",
     # "medications",
     # "health_metrics",
 ]

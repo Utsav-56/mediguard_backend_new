@@ -25,5 +25,5 @@ class UserLoginSerializer(TokenObtainPairSerializer):
 
         print(f"Serializer validated data: {data}")
 
-        data["user"] = self.user.full_info
+        data["user"] = self.user.full_info  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue] # ty:ignore[possibly-missing-attribute]
         return data

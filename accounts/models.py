@@ -42,7 +42,27 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.email
 
     @property
+    def caregivers(self):
+        """Get all users who are caregivers for this user (users who care for self)."""
+        # Users who are caregivers for this user:
+        # CareGivers model has caregiver -> User FK with related_name "cared_for_users".
+        return User.objects.filter(cared_for_users__user=self)
+
+    @property
+    def cared_for_users(self):
+        """Get all users for whom this user is a caregiver."""
+        # Users for whom self is a caregiver:
+        # CareGivers.model has user -> User FK with related_name "caretakers".
+        return User.objects.filter(caretakers__caregiver=self)
+
+    @property
+    def is_caretaker(self):
+        """Check if this user is a caretaker for any other user"""
+        return self.cared_for_users.exists()
+
+    @property
     def full_info(self):
+        """Get complete user info including profile and health info"""
         from accounts.serializers.read import CompleteUserGetSerializer
 
         return CompleteUserGetSerializer(self).data
@@ -117,10 +137,6 @@ class HealthInfo(models.Model):
 
     def __str__(self):
         return f"Health Info for {self.user.email} on {self.record_date}"
-
-
-
-
 
 
 """

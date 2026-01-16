@@ -1,10 +1,10 @@
-from django.contrib.auth.views import LogoutView
 from accounts.views import (
     PasswordChangeView,
     UserCreateView,
     UserLoginView,
     LoggedUserInfoView,
     UserUpdateView,
+    LogoutView,
 )
 
 from django.urls import path

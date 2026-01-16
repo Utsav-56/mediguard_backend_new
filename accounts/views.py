@@ -33,7 +33,12 @@ class UserCreateView(APIView):
         # try:
         user = serializer.save()
         return Response(
-            {"user": UserSignupSerializer(user).data}, status=HTTP_201_CREATED
+            {
+                "user": CompleteUserGetSerializer(
+                    user, context={"request": request}
+                ).data
+            },
+            status=HTTP_201_CREATED,
         )
 
 
