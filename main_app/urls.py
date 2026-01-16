@@ -28,5 +28,12 @@ urlpatterns = [
     # path("health-metrics/", include("health_metrics.urls")),
     path("caretakers/", include("caretakers.urls")),
     # just say hello from mediguard in /
-    path("", lambda request: HttpResponse("Hello from mediguard")),
+    path(
+        "",
+        lambda request: HttpResponse("""
+        <h1>Welcome to MediGuard Backend!</h1>
+        <p>This is the backend server for the MediGuard application.</p>
+                                          <p style="font-style: italic;">Developed with care to manage your health data securely.</p>                                  
+                                          """),
+    ),
 ]
