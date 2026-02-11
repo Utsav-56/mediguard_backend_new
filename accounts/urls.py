@@ -1,20 +1,8 @@
-from accounts.views import (
-    PasswordChangeView,
-    UserCreateView,
-    UserLoginView,
-    LoggedUserInfoView,
-    UserUpdateView,
-    LogoutView,
-)
-
-from django.urls import path
-
+from django.urls import path, include
 
 urlpatterns = [
-    path("register/", view=UserCreateView.as_view(), name="signup"),
-    path("login/", view=UserLoginView.as_view(), name="login"),
-    path("me/", view=LoggedUserInfoView.as_view(), name="logged_user_info"),
-    path("update/", view=UserUpdateView.as_view(), name="user_update"),
-    path("logout/", view=LogoutView.as_view(), name="logout"),
-    path("change-password/", view=PasswordChangeView.as_view(), name="change_password"),
+    path("", include("accounts.register.register_urls")),
+    path("", include("accounts.login.login_urls")),
+    path("", include("accounts.details.details_urls")),
+    path("", include("accounts.update.update_urls")),
 ]

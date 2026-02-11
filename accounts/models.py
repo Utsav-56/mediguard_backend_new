@@ -63,7 +63,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     @property
     def full_info(self):
         """Get complete user info including profile and health info"""
-        from accounts.serializers.read import CompleteUserGetSerializer
+        from accounts.details.details_serializers import CompleteUserGetSerializer
 
         return CompleteUserGetSerializer(self).data
 
