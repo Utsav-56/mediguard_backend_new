@@ -93,6 +93,9 @@ INSTALLED_APPS = [
     # Local apps
     "accounts",
     "caretakers",
+    "medications",
+    "health",
+    "reminders",
     # "medications",
     # "health_metrics",
 ]
