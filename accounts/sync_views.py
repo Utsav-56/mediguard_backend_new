@@ -70,7 +70,11 @@ class GlobalSyncView(APIView):
                         serializer = serializer_class(data=item_data)
                     
                     if serializer.is_valid():
-                        serializer.save(user=request.user)
+                        if item_id:
+                             # Force creation with the specific UUID provided by client
+                             serializer.save(user=request.user, id=item_id)
+                        else:
+                             serializer.save(user=request.user)
                     else:
                         print(f"Sync validation error for {key}: {serializer.errors}")
 
