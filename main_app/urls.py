@@ -27,7 +27,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/", include("accounts.urls")),
     path("accounts/", include("accounts.urls")),
-    # path("medications/", include("medications.urls")),
+    path("medications/", include("medications.urls")),
     # path("health-metrics/", include("health_metrics.urls")),
     path("caretakers/", include("caretakers.urls")),
     # just say hello from mediguard in /
