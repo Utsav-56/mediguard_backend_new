@@ -29,6 +29,7 @@ class UserUpdateSerializer(Serializer):
 
     insurance_provider = serializers.CharField(required=False, allow_blank=True)
     insurance_policy_number = serializers.CharField(required=False, allow_blank=True)
+    emergency_contact_email = serializers.EmailField(required=False, allow_null=True)
 
     profile_pic = serializers.ImageField(required=False, allow_null=True)
 
@@ -67,6 +68,7 @@ class UserUpdateSerializer(Serializer):
             "family_medical_history",
             "insurance_provider",
             "insurance_policy_number",
+            "emergency_contact_email",
         ]
         
         for field in profile_fields:

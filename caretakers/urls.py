@@ -13,4 +13,14 @@ urlpatterns = [
         views.CaregiverRetrieveUpdateDestroyAPIView.as_view(),
         name="caretaker-detail",
     ),
+    path(
+        "patient/<int:patient_id>/",
+        views.PatientFullDetailsView.as_view(),
+        name="patient-full-details",
+    ),
+    path(
+        "patient/<int:patient_id>/update/",
+        views.PatientUpdateView.as_view(),
+        name="patient-update",
+    ),
 ]

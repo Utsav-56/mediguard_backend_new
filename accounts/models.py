@@ -107,6 +107,9 @@ class UserProfile(models.Model):
     contact_email = models.EmailField(
         blank=True, null=True
     )  # this is different from auth email
+    emergency_contact_email = models.EmailField(
+        blank=True, null=True, help_text="Email of the emergency contact/caretaker"
+    )
 
     @property
     def full_name(self):

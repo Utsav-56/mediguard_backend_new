@@ -75,6 +75,8 @@ class CompleteUserGetSerializer(serializers.ModelSerializer):
     caretakers = serializers.SerializerMethodField()
     is_caretaker = serializers.SerializerMethodField()
     server_counts = serializers.SerializerMethodField()
+    medicines = serializers.SerializerMethodField()
+    recent_intakes = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -89,7 +91,23 @@ class CompleteUserGetSerializer(serializers.ModelSerializer):
             "caretakers",
             "is_caretaker",
             "server_counts",
+            "medicines",
+            "recent_intakes",
         ]
+
+    def get_medicines(self, obj):
+        from medications.models import Medicine
+        from medications.serializers import MedicineSerializer
+        medicines = Medicine.objects.filter(user=obj, is_deleted=False)
+        return MedicineSerializer(medicines, many=True).data
+
+    def get_recent_intakes(self, obj):
+        from medications.models import Intake
+        from medications.serializers import IntakeSerializer
+        import datetime
+        week_ago = datetime.date.today() - datetime.timedelta(days=7)
+        intakes = Intake.objects.filter(user=obj, date__gte=week_ago).order_by('-date', '-scheduled_time')[:50]
+        return IntakeSerializer(intakes, many=True).data
 
     def get_server_counts(self, obj):
         """Get counts of all user data stored on the server"""

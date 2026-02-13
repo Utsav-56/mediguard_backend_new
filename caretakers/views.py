@@ -77,3 +77,74 @@ class CaregiverAsCaregiverListAPIView(OwnerQuerysetMixin, generics.ListAPIView):
 
     def get_queryset(self):
         return self.get_base_queryset().filter(caregiver=self.request.user)
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from accounts.models import User
+from accounts.details.details_serializers import CompleteUserGetSerializer
+
+class PatientFullDetailsView(APIView):
+    """
+    GET /caretakers/patient/<patient_id>/
+    Returns full details of a patient if the current user is their caregiver.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, patient_id):
+        # 1. Check if relation exists
+        is_caregiver = CareGivers.objects.filter(
+            user_id=patient_id, 
+            caregiver=request.user
+        ).exists()
+
+        if not is_caregiver:
+            return Response(
+                {"detail": "You are not authorized to view this patient's data."},
+                status=403
+            )
+
+        # 2. Get User
+        patient = get_object_or_404(User, id=patient_id)
+
+        # 3. Serialize full info (using standard account details serializer)
+        serializer = CompleteUserGetSerializer(patient, context={'request': request})
+        return Response(serializer.data)
+
+from accounts.update.update_serializers import UserUpdateSerializer
+
+class PatientUpdateView(APIView):
+    """
+    PUT /caretakers/patient/<patient_id>/update/
+    Allows caregiver to update patient details.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def put(self, request, patient_id):
+        # 1. Check if relation exists
+        is_caregiver = CareGivers.objects.filter(
+            user_id=patient_id, 
+            caregiver=request.user
+        ).exists()
+
+        if not is_caregiver:
+            return Response(
+                {"detail": "You are not authorized to edit this patient's data."},
+                status=403
+            )
+
+        # 2. Get User
+        patient = get_object_or_404(User, id=patient_id)
+
+        # 3. Update using UserUpdateSerializer
+        serializer = UserUpdateSerializer(patient, data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        
+        patient = serializer.save()
+        
+        # 4. Return updated info
+        return Response({
+            "user": CompleteUserGetSerializer(patient, context={"request": request}).data
+        })
