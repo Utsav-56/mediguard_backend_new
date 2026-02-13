@@ -1,10 +1,8 @@
 import os
-import mimetypes
 from django.conf import settings
 from django.http import HttpResponse, Http404, FileResponse
 from django.views import View
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.core.exceptions import PermissionDenied
 
 
 class DownloadDatabaseView(UserPassesTestMixin, View):

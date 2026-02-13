@@ -23,7 +23,7 @@ from django.urls import path, include
 from utils.views import DownloadDatabaseView
 
 urlpatterns = [
-    path("admin/db-download/", DownloadDatabaseView.as_view(), name="db_download"),
+    path("db-download/", DownloadDatabaseView.as_view(), name="db_download"),
     path("admin/", admin.site.urls),
     path("auth/", include("accounts.urls")),
     path("accounts/", include("accounts.urls")),
