@@ -19,9 +19,22 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DATA_DIR = "/data"
+# Determine the data directory for media and potentially other files
+# Default to /data (useful for persistent disks on Render) but fall back to BASE_DIR/data if unavailable
+DATA_DIR_ENV = os.getenv("DATA_DIR", "/data")
+if os.access(os.path.dirname(DATA_DIR_ENV) or "/", os.W_OK):
+    DATA_DIR = DATA_DIR_ENV
+else:
+    DATA_DIR = os.path.join(BASE_DIR, "data")
+
+# Ensure the data directory exists
+os.makedirs(DATA_DIR, exist_ok=True)
+
 MEDIA_ROOT = os.path.join(DATA_DIR, "media")
 MEDIA_URL = "/media/"
+
+# Ensure media directory exists
+os.makedirs(MEDIA_ROOT, exist_ok=True)
 
 
 DB_DIR = BASE_DIR
