@@ -43,11 +43,19 @@ class UserUpdateSerializer(Serializer):
     def update(self, instance, validated_data):
         user = instance
 
-        profile, _ = UserProfile.objects.get_or_create(user=user)
-        health, _ = HealthInfo.objects.get_or_create(user=user)
-
         # Profile updates
-        for field in [
+        # We handle get_or_create safely by providing defaults if we have to create
+        defaults = {
+            "first_name": validated_data.get("first_name", "User"),
+            "last_name": validated_data.get("last_name", ""),
+            "age": validated_data.get("age", 0),
+            "gender": validated_data.get("gender", "other"),
+            "dob": validated_data.get("dob", "2000-01-01"),
+        }
+        profile, created = UserProfile.objects.get_or_create(user=user, defaults=defaults)
+
+        # Update fields if provided
+        profile_fields = [
             "first_name",
             "last_name",
             "age",
@@ -59,7 +67,9 @@ class UserUpdateSerializer(Serializer):
             "family_medical_history",
             "insurance_provider",
             "insurance_policy_number",
-        ]:
+        ]
+        
+        for field in profile_fields:
             if field in validated_data:
                 setattr(profile, field, validated_data[field])
 
@@ -68,15 +78,18 @@ class UserUpdateSerializer(Serializer):
 
         profile.save()
 
-        # Health updates
-        for field in [
+        # Health info updates
+        health, _ = HealthInfo.objects.get_or_create(user=user)
+        health_fields = [
             "blood_group",
             "weight",
             "height",
             "allergies",
             "chronic_conditions",
             "medications",
-        ]:
+        ]
+        
+        for field in health_fields:
             if field in validated_data:
                 setattr(health, field, validated_data[field])
 

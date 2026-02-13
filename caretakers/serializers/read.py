@@ -21,7 +21,7 @@ class CaregiverDetailSerializer(serializers.ModelSerializer):
             "caregiver",
             "contact_number",
             "email",
-            "name",
+            "nick_name",
             "address",
             "added_at",
             "updated_at",
@@ -31,10 +31,10 @@ class CaregiverDetailSerializer(serializers.ModelSerializer):
 class CaregiverBasicGetSerializer(serializers.ModelSerializer):
     class Meta:
         model = CareGivers
-        fields = ["id", "contact_number", "email", "name", "address"]
+        fields = ["id", "contact_number", "email", "nick_name", "address"]
 
 
 class CaretakerBasicGetSerializer(serializers.ModelSerializer):
     class Meta:
         model = CareGivers
-        fields = ["id", "contact_number", "email", "name", "address"]
+        fields = ["id", "contact_number", "email", "nick_name", "address"]

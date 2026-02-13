@@ -74,6 +74,7 @@ class CompleteUserGetSerializer(serializers.ModelSerializer):
     caregivers = serializers.SerializerMethodField()
     caretakers = serializers.SerializerMethodField()
     is_caretaker = serializers.SerializerMethodField()
+    server_counts = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -87,14 +88,32 @@ class CompleteUserGetSerializer(serializers.ModelSerializer):
             "caregivers",
             "caretakers",
             "is_caretaker",
+            "server_counts",
         ]
+
+    def get_server_counts(self, obj):
+        """Get counts of all user data stored on the server"""
+        from medications.models import Medicine, Intake
+        from reminders.models import Alarm
+        from health.models import BloodPressure, BloodSugar, Cholestrol, HeartRate, GenericMetric
+
+        return {
+            "medicine": Medicine.objects.filter(user=obj).count(),
+            "intake": Intake.objects.filter(user=obj).count(),
+            "alarm": Alarm.objects.filter(user=obj).count(),
+            "blood_pressure": BloodPressure.objects.filter(user=obj).count(),
+            "blood_sugar": BloodSugar.objects.filter(user=obj).count(),
+            "cholestrol": Cholestrol.objects.filter(user=obj).count(),
+            "heart_rate": HeartRate.objects.filter(user=obj).count(),
+            "generic_metric": GenericMetric.objects.filter(user=obj).count(),
+        }
 
     def get_caregivers(self, obj):
         """
         Get all users who are caregivers for this user.
         These are emergency contacts who will be notified if user is admitted.
         """
-        caretakers = CareGivers.objects.filter(caregiver=obj)
+        caretakers = CareGivers.objects.filter(user=obj)
         return CaregiverDetailSerializer(caretakers, many=True).data
 
     def get_caretakers(self, obj):

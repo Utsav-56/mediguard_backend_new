@@ -27,7 +27,7 @@ class UserUpdateView(APIView):
 
         user = serializer.save()
         return Response(
-            {"user": CompleteUserGetSerializer(user).data}, status=HTTP_200_OK
+            {"user": CompleteUserGetSerializer(user, context={"request": request}).data}, status=HTTP_200_OK
         )
 
 
