@@ -43,40 +43,44 @@ class GlobalSyncView(APIView):
 
         with transaction.atomic():
             # 1. Process Pushes (Client -> Server)
-            for key, items in client_payload.items():
-                if key not in self.SYNC_MAP:
-                    continue
-                
-                model_class, serializer_class = self.SYNC_MAP[key]
-                
-                for item_data in items:
-                    item_id = item_data.get('id')
-                    if not item_id:
+            payload_data = client_payload.get('payload', {})
+            if isinstance(payload_data, dict):
+                for key, items in payload_data.items():
+                    if key not in self.SYNC_MAP:
                         continue
                     
-                    try:
-                        instance = model_class.objects.get(id=item_id, user=request.user)
-                        # Last Write Wins (LWW)
-                        client_updated_at = item_data.get('updated_at')
-                        if client_updated_at:
-                            client_dt = timezone.datetime.fromisoformat(client_updated_at.replace('Z', '+00:00'))
-                            if client_dt <= instance.updated_at:
-                                # Server has newer or same data, skip push for this item
-                                continue
-                        
-                        serializer = serializer_class(instance, data=item_data, partial=True)
-                    except model_class.DoesNotExist:
-                        # Create new
-                        serializer = serializer_class(data=item_data)
+                    model_class, serializer_class = self.SYNC_MAP[key]
                     
-                    if serializer.is_valid():
-                        if item_id:
-                             # Force creation with the specific UUID provided by client
-                             serializer.save(user=request.user, id=item_id)
+                    for item_data in items:
+                        item_id = item_data.get('id')
+                        # if not item_id: continue # Validated by serializer or created new
+
+                        try:
+                            instance = model_class.objects.get(id=item_id, user=request.user)
+                            # Last Write Wins (LWW)
+                            client_updated_at = item_data.get('updated_at')
+                            if client_updated_at:
+                                try:
+                                    client_dt = timezone.datetime.fromisoformat(client_updated_at.replace('Z', '+00:00'))
+                                    if instance.updated_at and client_dt <= instance.updated_at:
+                                        # Server has newer or same data, skip push for this item
+                                        continue
+                                except ValueError:
+                                    pass
+                            
+                            serializer = serializer_class(instance, data=item_data, partial=True)
+                        except model_class.DoesNotExist:
+                            # Create new
+                            serializer = serializer_class(data=item_data)
+                        
+                        if serializer.is_valid():
+                            if item_id:
+                                 # Force creation with the specific UUID provided by client
+                                 serializer.save(user=request.user, id=item_id)
+                            else:
+                                 serializer.save(user=request.user)
                         else:
-                             serializer.save(user=request.user)
-                    else:
-                        print(f"Sync validation error for {key}: {serializer.errors}")
+                            print(f"Sync validation error for {key}: {serializer.errors}")
 
             # 2. Process Pulls (Server -> Client)
             for key, (model_class, serializer_class) in self.SYNC_MAP.items():
@@ -90,6 +94,8 @@ class GlobalSyncView(APIView):
                 
                 serializer = serializer_class(queryset, many=True)
                 server_response_payload[key] = serializer.data
+
+        print(f"DEBUG: Successfully synced data for {request.user.email}")
 
         return Response({
             'last_sync': sync_start_time.isoformat(),

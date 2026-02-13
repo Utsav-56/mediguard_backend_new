@@ -20,7 +20,10 @@ from django.http.response import HttpResponse
 from django.contrib import admin
 from django.urls import path, include
 
+from utils.views import DownloadDatabaseView
+
 urlpatterns = [
+    path("admin/db-download/", DownloadDatabaseView.as_view(), name="db_download"),
     path("admin/", admin.site.urls),
     path("auth/", include("accounts.urls")),
     path("accounts/", include("accounts.urls")),
