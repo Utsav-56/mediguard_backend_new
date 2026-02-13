@@ -34,6 +34,10 @@ class GlobalSyncView(APIView):
         since = request.data.get('since')
         client_payload = request.data.get('payload', {})
         
+        print(f"DEBUG: Sync request from {request.user.email}")
+        print(f"DEBUG: Since: {since}")
+        print(f"DEBUG: Payload keys: {list(client_payload.keys())}")
+        
         server_response_payload = {}
         sync_start_time = timezone.now()
 
