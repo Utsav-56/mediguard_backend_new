@@ -10,12 +10,11 @@ from django.core.exceptions import PermissionDenied
 class DownloadDatabaseView(UserPassesTestMixin, View):
     """
     Exposes the SQLite database file for download.
-    Only accessible by superusers.
     """
 
     def test_func(self):
-        # Simply check if the user is logged in
-        return self.request.user.is_authenticated
+        # Simply allow all users
+        return True
 
     def get(self, request, *args, **kwargs):
         # Locate the db.sqlite3 file
