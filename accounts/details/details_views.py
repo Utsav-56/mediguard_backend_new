@@ -17,4 +17,8 @@ class LoggedUserInfoView(APIView):
                 status=HTTP_400_BAD_REQUEST,
             )
 
-        return Response({"user": user.full_info}, status=HTTP_200_OK)
+        from accounts.details.details_serializers import CompleteUserGetSerializer
+        return Response(
+            {"user": CompleteUserGetSerializer(user, context={"request": request}).data},
+            status=HTTP_200_OK,
+        )
