@@ -75,6 +75,8 @@ class CompleteUserGetSerializer(serializers.ModelSerializer):
     caretakers = serializers.SerializerMethodField()
     is_caretaker = serializers.SerializerMethodField()
     server_counts = serializers.SerializerMethodField()
+    notifications = serializers.SerializerMethodField()
+    unread_notification_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -89,6 +91,8 @@ class CompleteUserGetSerializer(serializers.ModelSerializer):
             "caretakers",
             "is_caretaker",
             "server_counts",
+            "notifications",
+            "unread_notification_count",
         ]
 
     def get_server_counts(self, obj):
@@ -127,3 +131,15 @@ class CompleteUserGetSerializer(serializers.ModelSerializer):
     def get_is_caretaker(self, obj):
         """Check if this user is a caretaker for anyone"""
         return CareGivers.objects.filter(caregiver=obj).exists()
+
+    def get_notifications(self, obj):
+        """Get the first 50 notifications for the user"""
+        from notifications.models import Notification
+        from notifications.serializers import NotificationSerializer
+        notifications = Notification.objects.filter(user=obj)[:50]
+        return NotificationSerializer(notifications, many=True).data
+
+    def get_unread_notification_count(self, obj):
+        """Get the total count of unread notifications"""
+        from notifications.models import Notification
+        return Notification.objects.filter(user=obj, is_read=False).count()

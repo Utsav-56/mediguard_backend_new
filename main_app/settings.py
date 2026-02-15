@@ -110,6 +110,7 @@ INSTALLED_APPS = [
     "medications",
     "health",
     "reminders",
+    "notifications",
 ]
 
 ASGI_APPLICATION = "main_app.asgi.application"

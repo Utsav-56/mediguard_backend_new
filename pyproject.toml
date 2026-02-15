@@ -24,6 +24,7 @@ dependencies = [
     "olefile>=0.47",
     "pillow>=12.0.0",
     "python-dotenv>=1.2.1",
+    "twisted[http2,tls]>=25.5.0",
     "uuid>=1.30",
     "whitenoise>=6.11.0",
 ]
