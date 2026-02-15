@@ -87,7 +87,7 @@ LOGGING = {
 # Application definition
 
 INSTALLED_APPS = [
-    # "jazzmin",
+    "daphne",
     "unfold",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -103,15 +103,25 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "django_extensions",
     "django_filters",
+    "channels",
     # Local apps
     "accounts",
     "caretakers",
     "medications",
     "health",
     "reminders",
-    # "medications",
-    # "health_metrics",
 ]
+
+ASGI_APPLICATION = "main_app.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
