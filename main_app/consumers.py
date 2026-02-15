@@ -63,7 +63,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         from accounts.sync_utils import perform_sync
         from asgiref.sync import sync_to_async
 
-        def progress_callback(status, progress):
+        def progress_callback(status, progress, entity=None, current=None, total=None, mode=None):
             import asyncio
             from asgiref.sync import async_to_sync
             
@@ -72,21 +72,39 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             async_to_sync(self.send)(text_data=json.dumps({
                 "type": "sync_progress",
                 "status": status,
-                "progress": progress
+                "progress": progress,
+                "entity": entity,
+                "current": current,
+                "total": total,
+                "mode": mode
             }))
+
+        def item_success_callback(entity, instance, data):
+             import asyncio
+             from asgiref.sync import async_to_sync
+             from django.core.serializers.json import DjangoJSONEncoder
+             
+             async_to_sync(self.send)(text_data=json.dumps({
+                 "type": "sync_item_success",
+                 "entity": entity,
+                 "id": str(instance.id),
+                 "new_data": data
+             }, cls=DjangoJSONEncoder))
 
         try:
             # Run the sync logic in a separate thread because it's blocking DB work
             result = await sync_to_async(perform_sync)(
                 self.user, 
                 data, 
-                progress_callback=progress_callback
+                progress_callback=progress_callback,
+                item_success_callback=item_success_callback
             )
             
+            from django.core.serializers.json import DjangoJSONEncoder
             await self.send(text_data=json.dumps({
                 "type": "sync_complete",
                 "result": result
-            }))
+            }, cls=DjangoJSONEncoder))
         except Exception as e:
             import traceback
             traceback.print_exc()

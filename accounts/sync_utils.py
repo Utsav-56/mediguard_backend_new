@@ -21,7 +21,7 @@ SYNC_MAP = {
     'generic_metric': (GenericMetric, GenericMetricSerializer),
 }
 
-def perform_sync(user, client_payload, progress_callback=None):
+def perform_sync(user, client_payload, progress_callback=None, item_success_callback=None):
     since = client_payload.get('since')
     server_response_payload = {}
     sync_start_time = timezone.now()
@@ -39,8 +39,19 @@ def perform_sync(user, client_payload, progress_callback=None):
                     progress_callback(f"Processing {key}...", 0.1 + (idx / total_keys) * 0.4)
                 
                 model_class, serializer_class = SYNC_MAP[key]
+                total_items = len(items)
                 
-                for item_data in items:
+                for idx, item_data in enumerate(items):
+                    if progress_callback:
+                        progress_callback(
+                            status=f"Pushing {key}...", 
+                            progress=(idx + 1) / total_items if total_items > 0 else 1.0,
+                            entity=key,
+                            current=idx + 1,
+                            total=total_items,
+                            mode="push"
+                        )
+                    
                     item_id = item_data.get('id')
                     try:
                         instance = model_class.objects.get(id=item_id, user=user)
@@ -58,10 +69,14 @@ def perform_sync(user, client_payload, progress_callback=None):
                         serializer = serializer_class(data=item_data)
                     
                     if serializer.is_valid():
+                        saved_instance = None
                         if item_id:
-                             serializer.save(user=user, id=item_id)
+                             saved_instance = serializer.save(user=user, id=item_id)
                         else:
-                             serializer.save(user=user)
+                             saved_instance = serializer.save(user=user)
+                        
+                        if item_success_callback and saved_instance:
+                            item_success_callback(key, saved_instance, serializer.data)
                     else:
                         print(f"Sync validation error for {key}: {serializer.errors}")
 
