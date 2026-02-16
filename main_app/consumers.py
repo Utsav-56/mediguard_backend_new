@@ -44,6 +44,11 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         if action == "sync":
             await self.handle_sync(data)
+        elif action == "ping":
+            await self.send(text_data=json.dumps({
+                "type": "pong",
+                "message": "pong"
+            }))
         else:
             message = data.get("message")
             # Echo the message back or handle it

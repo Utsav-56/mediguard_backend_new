@@ -1,8 +1,16 @@
 import os
 from django.conf import settings
-from django.http import HttpResponse, Http404, FileResponse
+from django.http import HttpResponse, Http404, FileResponse, JsonResponse
 from django.views import View
 from django.contrib.auth.mixins import UserPassesTestMixin
+
+
+class PingView(View):
+    """
+    Simple ping view to check if the server is alive.
+    """
+    def get(self, request, *args, **kwargs):
+        return JsonResponse({"status": "ok", "message": "pong"})
 
 
 class DownloadDatabaseView(UserPassesTestMixin, View):

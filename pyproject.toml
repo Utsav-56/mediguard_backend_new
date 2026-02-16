@@ -20,6 +20,7 @@ dependencies = [
     "djangorestframework-stubs>=3.16.6",
     "djoser>=2.3.3",
     "drf-spectacular>=0.29.0",
+    "faker>=40.4.0",
     "logging>=0.4.9.6",
     "olefile>=0.47",
     "pillow>=12.0.0",
