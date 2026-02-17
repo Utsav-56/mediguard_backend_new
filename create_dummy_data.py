@@ -180,7 +180,7 @@ def main():
             user=user,
             caregiver=caretaker,
             email=caretaker_email,
-            nick_name=f"Mr. Caretaker",
+            nick_name="",
             contact_number=caretaker.profile.phone_number
         )
         

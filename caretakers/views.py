@@ -131,3 +131,77 @@ class CaregiverPatientDetailAPIView(APIView):
             "medicines": medicine_data,
             "recent_intakes": intake_data
         })
+
+class CaregiverMedicineDetailAPIView(APIView):
+    """
+    GET /caretakers/medicine/{pk}/ -> Get details of a specific medicine
+    PATCH /caretakers/medicine/{pk}/ -> Update details of a specific medicine
+    Accessible only if request.user is a caretaker for the medicine's owner.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_medicine(self, request, pk):
+        try:
+            medicine = Medicine.objects.select_related('user').get(pk=pk)
+        except Medicine.DoesNotExist:
+            return None, Response(
+                {"detail": "Medicine not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # check if request.user is a caretaker for medicine.user
+        is_caretaker = CareGivers.objects.filter(
+            caregiver=request.user, 
+            user=medicine.user
+        ).exists()
+
+        if not is_caretaker:
+            return None, Response(
+                {"detail": "You are not authorized to access this medicine."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return medicine, None
+
+    def get(self, request, pk, format=None):
+        medicine, error_response = self.get_medicine(request, pk)
+        if error_response:
+            return error_response
+        
+        serializer = MedicineSerializer(medicine, context={'request': request})
+        data = serializer.data
+        
+        # Add recent intakes
+        intakes = Intake.objects.filter(medicine=medicine).order_by('-date', '-scheduled_time')[:20]
+        data['recent_intakes'] = IntakeSerializer(intakes, many=True, context={'request': request}).data
+        
+        return Response(data)
+
+    def patch(self, request, pk, format=None):
+        medicine, error_response = self.get_medicine(request, pk)
+        if error_response:
+            return error_response
+
+        # Correct for fields that might be sent as JSON strings via multipart/form-data
+        data = request.data.copy()
+        for field in ['intake_times', 'days_of_week']:
+            if field in data and isinstance(data[field], str):
+                try:
+                    import json
+                    data[field] = json.loads(data[field])
+                except (ValueError, TypeError):
+                    pass
+
+        # Use partial=True for PATCH updates
+        serializer = MedicineSerializer(
+            medicine, 
+            data=data,
+            partial=True, 
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

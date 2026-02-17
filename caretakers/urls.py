@@ -18,4 +18,9 @@ urlpatterns = [
         views.CaregiverPatientDetailAPIView.as_view(),
         name="caretaker-patient-detail",
     ),
+    path(
+        "medicine/<uuid:pk>/",
+        views.CaregiverMedicineDetailAPIView.as_view(),
+        name="caretaker-medicine-detail",
+    ),
 ]
