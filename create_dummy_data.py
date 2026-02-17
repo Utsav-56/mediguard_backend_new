@@ -2,6 +2,7 @@ import os
 import django
 import random
 import json
+from django.utils import timezone
 from datetime import datetime, timedelta
 from faker import Faker
 
@@ -39,7 +40,7 @@ def create_user(email, first_name, last_name, is_caretaker_for=None, emergency_e
     user = User.objects.create_user(email=email, password=DEFAULT_PASSWORD)
     
     dob = fake.date_of_birth(minimum_age=20, maximum_age=80)
-    age = (datetime.now().date() - dob).days // 365
+    age = (timezone.now().date() - dob).days // 365
     
     profile = UserProfile.objects.create(
         user=user,
@@ -98,7 +99,7 @@ def seed_user_data(user):
             
         # Create some intakes for the last 3 days
         for i in range(3):
-            date = datetime.now().date() - timedelta(days=i)
+            date = timezone.now().date() - timedelta(days=i)
             for time in medicine.intake_times:
                 Intake.objects.create(
                     user=user,
@@ -111,7 +112,7 @@ def seed_user_data(user):
 
     # Create Health Metrics
     for i in range(5):
-        timestamp = datetime.now() - timedelta(days=i, hours=random.randint(0, 23))
+        timestamp = timezone.now() - timedelta(days=i, hours=random.randint(0, 23))
         
         BloodPressure.objects.create(
             user=user,

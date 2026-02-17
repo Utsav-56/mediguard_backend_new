@@ -4,9 +4,24 @@ from caretakers.models import CareGivers
 
 
 class UserMiniSerializer(serializers.ModelSerializer):
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ["id", "email", "first_name", "last_name"]
+
+    def get_first_name(self, obj):
+        try:
+            return obj.profile.first_name
+        except Exception:
+            return ""
+
+    def get_last_name(self, obj):
+        try:
+            return obj.profile.last_name
+        except Exception:
+            return ""
 
 
 class CaregiverDetailSerializer(serializers.ModelSerializer):

@@ -116,6 +116,6 @@ def perform_sync(user, client_payload, progress_callback=None, item_success_call
         print(f"Error creating sync notification: {e}")
 
     return {
-        'last_sync': sync_start_time.isoformat(),
+        'last_sync': sync_start_time.isoformat().replace("+00:00", "Z"),
         'payload': server_response_payload
     }

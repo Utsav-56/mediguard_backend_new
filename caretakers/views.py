@@ -6,6 +6,14 @@ from caretakers.serializers.update import CaregiverUpdateSerializer
 from caretakers.serializers.read import CaregiverDetailSerializer
 from caretakers.serializers.delete import CaregiverRemoveSerializer
 
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+from accounts.details.details_serializers import UserProfileGetSerializer, HealthInfoGetSerializer
+from medications.models import Medicine, Intake
+from medications.serializers import MedicineSerializer, IntakeSerializer
+
 
 class IsOwnerUser(permissions.BasePermission):
     """
@@ -77,3 +85,49 @@ class CaregiverAsCaregiverListAPIView(OwnerQuerysetMixin, generics.ListAPIView):
 
     def get_queryset(self):
         return self.get_base_queryset().filter(caregiver=self.request.user)
+
+
+class CaregiverPatientDetailAPIView(APIView):
+    """
+    GET /caretakers/patient/{pk}/ -> Get full details of a patient (user)
+    Only accessible if the current user is a registered caretaker for that patient.
+    Aggregates profile, health info, medicines, and recent intakes.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk, format=None):
+        # 1. Verify that 'request.user' is a caregiver for 'user with id=pk'
+        try:
+            care_relation = CareGivers.objects.get(caregiver=request.user, user_id=pk)
+        except CareGivers.DoesNotExist:
+            return Response(
+                {"detail": "You are not authorized to view this patient's details."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        target_user = care_relation.user
+
+        # 2. Fetch Profile & Health Info
+        profile_data = {}
+        if hasattr(target_user, 'profile'):
+            # Context is needed for image URL generation
+            profile_data = UserProfileGetSerializer(target_user.profile, context={'request': request}).data
+            
+        health_data = {}
+        if hasattr(target_user, 'health_info'):
+            health_data = HealthInfoGetSerializer(target_user.health_info).data
+
+        # 3. Fetch Medicines
+        medicines = Medicine.objects.filter(user=target_user)
+        medicine_data = MedicineSerializer(medicines, many=True, context={'request': request}).data
+
+        # 4. Fetch Recent Intakes (last 20 for history)
+        intakes = Intake.objects.filter(user=target_user).order_by('-date', '-scheduled_time')[:20]
+        intake_data = IntakeSerializer(intakes, many=True, context={'request': request}).data
+
+        return Response({
+            "profile": profile_data,
+            "health_info": health_data,
+            "medicines": medicine_data,
+            "recent_intakes": intake_data
+        })
