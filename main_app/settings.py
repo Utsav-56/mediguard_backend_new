@@ -1,3 +1,4 @@
+from numpy.typing.tests.test_isfile import ROOT
 import os
 from pathlib import Path
 from datetime import timedelta
@@ -48,6 +49,8 @@ CHANNEL_LAYERS = {
 # Production uses /root/mediguard/staticfiles (as we discussed for Caddy)
 STATIC_URL = "static/"
 STATIC_ROOT = config("STATIC_ROOT", default=BASE_DIR / "staticfiles")
+
+ROOT_URLCONF = "main_app.urls"
 
 MEDIA_URL = "/media/"
 # Persistent data dir for Podman/DigitalOcean
