@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from accounts.sync_utils import perform_sync
+from sync.utils import perform_sync
 
 class GlobalSyncView(APIView):
     permission_classes = [IsAuthenticated]

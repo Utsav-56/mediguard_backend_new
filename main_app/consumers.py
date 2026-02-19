@@ -7,7 +7,8 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         # For now, let's just accept all connections
         self.user = self.scope.get("user")
         if self.user and self.user.is_authenticated:
-            self.room_group_name = f"user_{self.user.id}"
+            from sync.utils import get_user_group_name
+            self.room_group_name = get_user_group_name(self.user.email)
             await self.channel_layer.group_add(
                 self.room_group_name,
                 self.channel_name
@@ -44,6 +45,8 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         if action == "sync":
             await self.handle_sync(data)
+        elif action == "sync_item":
+            await self.handle_sync_item(data)
         elif action == "ping":
             await self.send(text_data=json.dumps({
                 "type": "pong",
@@ -57,6 +60,41 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 "message": f"Echo: {message}"
             }))
 
+    async def handle_sync_item(self, data):
+        if not self.user or not self.user.is_authenticated:
+            return
+
+        from sync.utils import process_item
+        from asgiref.sync import sync_to_async
+        from django.core.serializers.json import DjangoJSONEncoder
+
+        entity = data.get("entity")
+        item_data = data.get("data")
+
+        if not entity or not item_data:
+            return
+
+        def item_success_callback(entity, instance, data):
+             # This sends confirmation back to the client that specific item was saved
+             import asyncio
+             from asgiref.sync import async_to_sync
+             async_to_sync(self.send)(text_data=json.dumps({
+                 "type": "sync_item_success",
+                 "entity": entity,
+                 "id": str(instance.id),
+                 "new_data": data
+             }, cls=DjangoJSONEncoder))
+
+        try:
+            await sync_to_async(process_item)(
+                self.user, 
+                entity, 
+                item_data, 
+                item_success_callback=item_success_callback
+            )
+        except Exception as e:
+            print(f"Error in handle_sync_item: {e}")
+
     async def handle_sync(self, data):
         if not self.user or not self.user.is_authenticated:
             await self.send(text_data=json.dumps({
@@ -65,7 +103,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             }))
             return
 
-        from accounts.sync_utils import perform_sync
+        from sync.utils import perform_sync
         from asgiref.sync import sync_to_async
 
         def progress_callback(status, progress, entity=None, current=None, total=None, mode=None):
@@ -123,3 +161,12 @@ class NotificationConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "message": message
         }))
+
+    async def sync_event(self, event):
+        from django.core.serializers.json import DjangoJSONEncoder
+        await self.send(text_data=json.dumps({
+            "event": event["event"],
+            "entity": event["entity"],
+            "data": event["data"],
+            "timestamp": event["timestamp"]
+        }, cls=DjangoJSONEncoder))

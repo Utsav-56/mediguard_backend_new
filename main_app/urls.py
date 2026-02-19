@@ -29,6 +29,7 @@ urlpatterns = [
     path("auth/", include("accounts.urls")),
     path("accounts/", include("accounts.urls")),
     path("notifications/", include("notifications.urls")),
+    path("api/sync/", include("sync.urls")),
     # path("medications/", include("medications.urls")),
     # path("health-metrics/", include("health_metrics.urls")),
     path("caretakers/", include("caretakers.urls")),
