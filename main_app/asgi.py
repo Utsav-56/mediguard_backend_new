@@ -1,30 +1,25 @@
 import os
+import django
 from django.core.asgi import get_asgi_application
 
-# 1. Set settings
+# 1. Set the settings module first
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "main_app.settings")
 
-# 2. Initialize Django ASGI application
-# This MUST happen before importing any middleware or routing
+# 2. Initialize the Django ASGI application FIRST.
+# This loads all INSTALLED_APPS and models.
 django_asgi_app = get_asgi_application()
 
-# 3. Import Channels components AFTER get_asgi_application
+# 3. NOW it is safe to import your project-specific code.
 from channels.routing import ProtocolTypeRouter, URLRouter
+from main_app.middleware import WebSocketJWTAuthMiddleware
+import main_app.routing
 
-
-# This function handles the "lazy" loading of your routing/middleware
-def get_project_application():
-    import main_app.routing
-    from main_app.middleware import WebSocketJWTAuthMiddleware
-
-    return ProtocolTypeRouter(
-        {
-            "http": django_asgi_app,
-            "websocket": WebSocketJWTAuthMiddleware(
-                URLRouter(main_app.routing.websocket_urlpatterns)
-            ),
-        }
-    )
-
-
-application = get_project_application()
+# 4. Define the final application
+application = ProtocolTypeRouter(
+    {
+        "http": django_asgi_app,
+        "websocket": WebSocketJWTAuthMiddleware(
+            URLRouter(main_app.routing.websocket_urlpatterns)
+        ),
+    }
+)
