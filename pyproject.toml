@@ -1,54 +1,51 @@
 [project]
 name = "mediguard-backend"
 version = "0.1.0"
-description = "This is a backend for making rest apis and powering the mediguard"
+description = "Backend for Mediguard REST APIs and real-time features"
 readme = "README.md"
 requires-python = ">=3.12"
+
+# --- PRODUCTION DEPENDENCIES ---
+# Only what is strictly needed to RUN the app
 dependencies = [
+    "django>=6.0",
+    "djangorestframework>=3.16.1",
+    "djoser>=2.3.3",
+    "djangorestframework-simplejwt>=5.5.1",
     "channels>=4.3.2",
     "channels-redis>=4.3.0",
     "daphne>=4.2.1",
-    "django>=6.0",
-    "django-cors-headers>=4.9.0",
-    "django-extensions>=4.1",
-    "django-filter>=25.2",
-    "django-jazzmin>=3.0.1",
-    "django-stubs>=5.2.8",
-    "django-unfold>=0.74.1",
-    "djangorestframework>=3.16.1",
-    "djangorestframework-simplejwt>=5.5.1",
-    "djangorestframework-stubs>=3.16.6",
-    "djoser>=2.3.3",
-    "drf-spectacular>=0.29.0",
-    "faker>=40.4.0",
-    "logging>=0.4.9.6",
-    "olefile>=0.47",
-    "pillow>=12.0.0",
-    "python-decouple>=3.8",
-    "python-dotenv>=1.2.1",
     "twisted[http2,tls]>=25.5.0",
-    "uuid>=1.30",
+    "django-cors-headers>=4.9.0",
+    "django-filter>=25.2",
+    "django-unfold>=0.74.1",
+    "django-jazzmin>=3.0.1",
+    "python-decouple>=3.8",
+    "pillow>=12.0.0",
     "whitenoise>=6.11.0",
+    "psycopg2-binary>=2.9.9",               # Added: Essential for Postgres
 ]
-
-
-[tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "main_app.settings"
-python_files = [
-    "tests.py",
-    "test_*.py",
-    "*_tests.py",
-]
-addopts = "-s"
 
 [dependency-groups]
 dev = [
-    "ty>=0.0.7",
-    "basedpyright>=1.36.2",
-   "pytest>=9.0.2",
+    "pytest>=9.0.2",
     "pytest-django>=4.11.1",
+    "ruff>=0.14.10",
+    "basedpyright>=1.36.2",
+    "faker>=40.4.0",
+    "django-stubs>=5.2.8",
+    "djangorestframework-stubs>=3.16.6",
+    "drf-spectacular>=0.29.0",           # Docs generation is usually a dev task
+    "django-extensions>=4.1",
     "pyrefly>=0.46.1",
-      "ruff>=0.14.10",
-  
-  
+    "ty>=0.0.7",
 ]
+
+[tool.uv]
+# This makes sure 'uv run' and 'uv sync' don't accidentally pull dev tools in Prod
+default-groups = ["dev"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "main_app.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "-s"
