@@ -1,4 +1,3 @@
-from numpy.typing.tests.test_isfile import ROOT
 import os
 from pathlib import Path
 from datetime import timedelta
