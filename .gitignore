@@ -11,3 +11,8 @@ wheels/
 *.sqlite
 *.sqlite3
 .env
+commit
+debug.log
+pytest.ini
+render_build.sh
+.pytest_cache

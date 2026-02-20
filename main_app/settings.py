@@ -15,6 +15,50 @@ SECRET_KEY = config("SECRET_KEY", default="django-insecure-local-dev-key")
 # For local dev, ALLOWED_HOSTS is ['*'].
 # In Prod, set ALLOWED_HOSTS=mediguard.utsav56.me,utsav56.me
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="*", cast=Csv())
+ 
+INSTALLED_APPS = [
+    # Custom Admin
+    "unfold",
+    # "jazzmin",
+
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+
+    # Third-party apps
+    "rest_framework",
+    "rest_framework.authtoken",
+    "corsheaders",
+    "django_filters",
+    "channels",
+    "djoser",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
+
+    # Project apps
+    "accounts",
+    "medications",
+    "health",
+    "caretakers",
+    "notifications",
+    "reminders",
+    "sync",
+]
+
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
 
 # --- DATABASE CONFIG ---
 # Automatically switches based on environment variables
@@ -51,6 +95,25 @@ STATIC_ROOT = config("STATIC_ROOT", default=BASE_DIR / "staticfiles")
 
 ROOT_URLCONF = "main_app.urls"
 
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = "main_app.wsgi.application"
+ASGI_APPLICATION = "main_app.asgi.application"
+
 MEDIA_URL = "/media/"
 # Persistent data dir for Podman/DigitalOcean
 DATA_DIR = Path(config("DATA_DIR", default=BASE_DIR / "data"))
@@ -71,16 +134,7 @@ CSRF_TRUSTED_ORIGINS = config(
     cast=Csv(),
 )
 
-# --- JWT & COOKIES ---
-SIMPLE_JWT = {
-    "AUTH_HEADER_TYPES": ("Bearer",),
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=3),
-    "ROTATE_REFRESH_TOKENS": True,
-    # Set Secure to True in Prod (requires HTTPS)
-    "AUTH_COOKIE_SECURE": not DEBUG,
-    "AUTH_COOKIE_HTTP_ONLY": True,
-    "AUTH_COOKIE_SAMESITE": "Lax",
-}
+# --- PASSWORD VALIDATORS ---
 
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -127,14 +181,14 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     # Custom Cookie Settings
-    "AUTH_COOKIE": "townspark_access_token",
-    "AUTH_COOKIE_REFRESH": "townspark_refresh_token",
-    "AUTH_COOKIE_SECURE": False,  # Set to True in production (HTTPS)
+    "AUTH_COOKIE": "mediguard_access_token",
+    "AUTH_COOKIE_REFRESH": "mediguard_refresh_token",
+    "AUTH_COOKIE_SECURE": not DEBUG,  # Set to True in production (HTTPS)
     "AUTH_COOKIE_HTTP_ONLY": True,  # Prevents JS from reading the cookie (XSS protection)
     "AUTH_COOKIE_PATH": "/",
     "AUTH_COOKIE_SAMESITE": "Lax",
-    "ADMIN_COOKIE": "townspark_admin_token",
-    "ADMIN_COOKIE_REFRESH": "townspark_admin_refresh_token",
+    "ADMIN_COOKIE": "mediguard_admin_token",
+    "ADMIN_COOKIE_REFRESH": "mediguard_admin_refresh_token",
 }
 
 
@@ -151,6 +205,9 @@ DJOSER = {
     # },
 }
 
+AUTH_USER_MODEL = "accounts.User"
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
@@ -160,4 +217,3 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
-STATIC_URL = "static/"
